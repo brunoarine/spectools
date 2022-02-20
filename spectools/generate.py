@@ -2,30 +2,31 @@ import numpy as np
 from scipy import stats
 
 
-def generate_new_spectrum(old_spectrum, rate=1):
-    # auxiliary variable
-    old_spectrum_ravel = []
-    # number of channels
-    m = len(old_spectrum)
-    # total number of counts
-    total_count = np.sum(old_spectrum)
-    for ch in range(m):
-        old_spectrum_ravel.extend([ch] * old_spectrum[ch])
-    old_spectrum_ravel = np.array(old_spectrum_ravel)
-    new_spectrum_ravel = np.random.choice(old_spectrum_ravel, size=int(total_count * rate))
-    new_spectrum = np.bincount(new_spectrum_ravel, minlength=m)
-    return new_spectrum
+def new_gauss_peak(spectrum: np.ndarray, counts: int, loc: int, fwhm: float) -> np.ndarray:
+    """
+    Generates counts in random locations according to a gaussian probability in an existing spectrum.
 
+    Parameters
+    ----------
+    spectrum : np.ndarray
+        Count spectrum.
+    counts : int
+        Number of counts in new peak.
+    loc : int
+        Location of the new peak.
+    fwhm : float
+        Full width at half measure of the new peak.
 
-def new_peak(array, count, loc, fwhm):
-    '''
-    Generates counts in random locations according to a gaussian probability.
-    '''
-    sigma = fwhm / 2.355
-    for i in range(count):
+    Returns
+    -------
+    spectrum : np.ndarray
+        Same spectrum as input but with new synthetic peaks added.
+    """
+    sigma = fwhm / 2.35482004503
+    for i in range(counts):
         channel = int(round(stats.norm.rvs(loc, sigma), 0))
-        array[channel] += 1
-    return array
+        spectrum[channel] += 1
+    return spectrum
 
 
 def new_bg(array, count_per_channel):
@@ -53,13 +54,13 @@ def simulated_spectra(iter=100, bg_range=(40, 41), snr_db_range=(5, 6), include_
         x = np.zeros(100)
         x = new_bg(x, bg)
         if mainpeak:
-            new_peak(x, count=peakarea, loc=50, fwhm=3)
+            new_gauss_peak(x, counts=peakarea, loc=50, fwhm=3)
             y[i] = 1
             list_peakareas.append(peakarea)
         if dummypeak:
             # Cenario A (nao tem dummy peak)
             if include_dummy:
-                new_peak(x, count=np.random.randint(60, 100), loc=dummy_pos, fwhm=3)
+                new_gauss_peak(x, counts=np.random.randint(60, 100), loc=dummy_pos, fwhm=3)
             dummy[i] = 1
         X[i, :] = x
     return X, y, dummy
